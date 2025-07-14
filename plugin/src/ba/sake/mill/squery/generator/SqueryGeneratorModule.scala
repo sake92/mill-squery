@@ -1,8 +1,8 @@
-package ba.sake.squery.generator.mill
+package ba.sake.mill.squery.generator
 
-import _root_.mill.*
-import _root_.mill.scalalib.*
-import _root_.mill.api.BuildCtx
+import mill.*
+import mill.scalalib.*
+import mill.api.BuildCtx
 import upickle.default.{ReadWriter, macroRW}
 import ba.sake.squery.generator.{NameMapper, SchemaConfig, SqueryGenerator, SqueryGeneratorConfig}
 

@@ -1,8 +1,9 @@
-package h2.test.src
-
-import ba.sake.squery.{*, given}
+package public
 
 import java.time.*
+import ba.sake.squery.{*, given}
+import models.*
+import daos.*
 
 class ActorDaoSuite extends munit.FunSuite with TestUtils {
 

@@ -1,4 +1,5 @@
 //| mill-version: 1.0.0
+
 package build
 
 import mill.*
@@ -10,10 +11,8 @@ import mill.util.BuildInfo.{millVersion, millBinPlatform}
 
 object plugin extends ScalaModule, SqueryPublishModule {
   def artifactName = "mill-squery-generator"
-
-  // Set the `platformSuffix` so the name indicates what Mill version it is compiled for
   def platformSuffix = s"_mill${millBinPlatform}"
-  
+
   def scalaVersion = "3.7.1"
 
   def scalacOptions = Seq("-Ywarn-unused", "-deprecation")
@@ -28,36 +27,13 @@ object plugin extends ScalaModule, SqueryPublishModule {
     mvn"com.oracle.database.jdbc:ojdbc8:23.3.0.23.09"
   )
 
-  object integration extends ScalaTests, TestModule.Munit {
+  object test extends ScalaTests, TestModule.Munit {
     def munitVersion = "1.1.0"
 
-    def mvnDeps = Seq(mvn"com.lihaoyi::mill-testkit:$millVersion")
-
-    def forkEnv = Task {
-      BuildCtx.withFilesystemCheckerDisabled {
-        val millAssemblyPath = millExecutable.assembly().path
-        val millExecPath =
-          if (scala.util.Properties.isWin) {
-            val batPath = millAssemblyPath / os.up / (millAssemblyPath.baseName + ".bat")
-            os.copy.over(millAssemblyPath, batPath)
-            batPath.toString
-          } else millAssemblyPath.toString
-        val artifact = s"${plugin.pomSettings().organization}-${plugin.artifactId()}"
-          .replaceAll("[.-]", "_")
-          .toUpperCase
-        val localClasspathString = plugin.localClasspath().map(_.path).mkString("\n")
-        Map(
-          "MILL_EXECUTABLE_PATH" -> millExecPath,
-          s"MILL_LOCAL_TEST_OVERRIDE_$artifact" -> localClasspathString
-        )
-      }
-    }
-
-    object millExecutable extends JavaModule {
-      def mvnDeps = Seq(mvn"com.lihaoyi:mill-runner-launcher_3:$millVersion")
-
-      def mainClass = Some("mill.launcher.MillLauncherMain")
-    }
+    def mvnDeps = Seq(
+      mvn"com.lihaoyi::mill-testkit:$millVersion",
+      mvn"com.lihaoyi::mill-contrib-flyway:$millVersion"
+    )
   }
 }
 

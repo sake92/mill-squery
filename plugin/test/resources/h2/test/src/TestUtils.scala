@@ -1,4 +1,4 @@
-package h2.test.src
+package public
 
 import ba.sake.squery.SqueryContext
 
