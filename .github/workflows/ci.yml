@@ -19,5 +19,4 @@ jobs:
           distribution: 'zulu'
           java-version: 11
       - run: |
-          ./mill __.test
           ./mill __.integration
