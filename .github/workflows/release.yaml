@@ -15,6 +15,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
   publish:
     runs-on: ubuntu-latest
+    if: github.repository == 'sake92/mill-squery'
     needs: [tests]
     steps:
       - uses: actions/checkout@v4
