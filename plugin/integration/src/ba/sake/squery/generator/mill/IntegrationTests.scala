@@ -1,8 +1,8 @@
 package ba.sake.squery.generator.mill
 
 import scala.concurrent.duration.Duration
-import mill.api.PathRef
-import mill.testkit.IntegrationTester
+import _root_.mill.api.PathRef
+import _root_.mill.testkit.IntegrationTester
 
 class IntegrationTests extends munit.FunSuite {
 

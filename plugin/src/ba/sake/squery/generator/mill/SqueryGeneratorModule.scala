@@ -1,9 +1,10 @@
 package ba.sake.squery.generator.mill
 
-import mill._
-import mill.scalalib._
+import _root_.mill.*
+import _root_.mill.scalalib.*
+import _root_.mill.api.BuildCtx
 import upickle.default.{ReadWriter, macroRW}
-import _root_.ba.sake.squery.generator._
+import ba.sake.squery.generator.{NameMapper, SchemaConfig, SqueryGenerator, SqueryGeneratorConfig}
 
 trait SqueryGeneratorModule extends JavaModule {
 
@@ -14,13 +15,19 @@ trait SqueryGeneratorModule extends JavaModule {
   implicit val SqueryGeneratorConfigRW: ReadWriter[SqueryGeneratorConfig] = macroRW
 
   def squeryJdbcUrl: T[String]
+
   def squeryUsername: T[String]
+
   def squeryPassword: T[String]
 
   /** List of (schema, basePackage) */
   def squerySchemas: T[Seq[(String, String)]]
 
-  def squeryTargetDir: T[PathRef] = Task(PathRef(moduleDir / "src"))
+  def squeryTargetDir: T[PathRef] = Task {
+    BuildCtx.withFilesystemCheckerDisabled {
+      PathRef(moduleDir / "src")
+    }
+  }
 
   def squeryGeneratorConfig: T[SqueryGeneratorConfig] = Task(SqueryGeneratorConfig.Default)
 
@@ -64,15 +71,17 @@ trait SqueryGeneratorModule extends JavaModule {
       } else throw new RuntimeException(s"Unsupported database ${jdbcUrl}")
 
     val generator = new SqueryGenerator(dataSource, squeryGeneratorConfig())
-    generator.generateFiles(
-      squerySchemas().map { case (schemaName, basePackage) =>
-        SchemaConfig(
-          name = schemaName,
-          baseFolder = squeryTargetDir().path.wrapped,
-          basePackage = basePackage
-        )
-      }
-    )
+    BuildCtx.withFilesystemCheckerDisabled {
+      generator.generateFiles(
+        squerySchemas().map { case (schemaName, basePackage) =>
+          SchemaConfig(
+            name = schemaName,
+            baseFolder = squeryTargetDir().path.wrapped,
+            basePackage = basePackage
+          )
+        }
+      )
+    }
 
     println("Finished generating Squery sources")
   }

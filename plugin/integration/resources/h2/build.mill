@@ -2,6 +2,7 @@
 //| mvnDeps: 
 //| - "com.lihaoyi::mill-contrib-flyway:1.0.0"
 //| - "ba.sake::mill-squery-generator::0.0.1"
+
 package build
 
 import mill.*, scalalib.*
@@ -15,7 +16,7 @@ object `package` extends ScalaModule, SqueryGeneratorModule, FlywayModule {
   def mvnDeps = Seq(
     mvn"com.zaxxer:HikariCP:4.0.3",
     mvn"com.h2database:h2:2.3.232",
-    mvn"ba.sake::squery:0.6.4"
+    mvn"ba.sake::squery:0.7.0"
   )
   
   // cant just ./h2_pagila because of Mill task sandboxing
