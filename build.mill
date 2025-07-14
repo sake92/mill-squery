@@ -1,0 +1,77 @@
+//| mill-version: 1.0.0
+package build
+
+import mill.*
+import mill.api.BuildCtx
+import mill.scalalib.*
+import mill.scalalib.publish.*
+import mill.util.VcsVersion
+import mill.util.BuildInfo.{millVersion, millBinPlatform}
+
+object plugin extends ScalaModule, SqueryPublishModule {
+  def artifactName = "mill-squery-generator"
+
+  // Set the `platformSuffix` so the name indicates what Mill version it is compiled for
+  def platformSuffix = s"_mill${millBinPlatform}"
+  
+  def scalaVersion = "3.7.1"
+
+  def scalacOptions = Seq("-Ywarn-unused", "-deprecation")
+
+  def mvnDeps = Seq(
+    mvn"com.lihaoyi::mill-libs:$millVersion",
+    mvn"ba.sake::squery-generator:0.7.0".withDottyCompat(scalaVersion()),
+    mvn"com.h2database:h2:2.3.232",
+    mvn"org.postgresql:postgresql:42.7.4",
+    mvn"mysql:mysql-connector-java:8.0.33",
+    mvn"org.mariadb.jdbc:mariadb-java-client:3.3.2",
+    mvn"com.oracle.database.jdbc:ojdbc8:23.3.0.23.09"
+  )
+
+  object integration extends ScalaTests, TestModule.Munit {
+    def munitVersion = "1.1.0"
+
+    def mvnDeps = Seq(mvn"com.lihaoyi::mill-testkit:$millVersion")
+
+    def forkEnv = Task {
+      BuildCtx.withFilesystemCheckerDisabled {
+        val millAssemblyPath = millExecutable.assembly().path
+        val millExecPath =
+          if (scala.util.Properties.isWin) {
+            val batPath = millAssemblyPath / os.up / (millAssemblyPath.baseName + ".bat")
+            os.copy.over(millAssemblyPath, batPath)
+            batPath.toString
+          } else millAssemblyPath.toString
+        val artifact = s"${plugin.pomSettings().organization}-${plugin.artifactId()}"
+          .replaceAll("[.-]", "_")
+          .toUpperCase
+        val localClasspathString = plugin.localClasspath().map(_.path).mkString("\n")
+        Map(
+          "MILL_EXECUTABLE_PATH" -> millExecPath,
+          s"MILL_LOCAL_TEST_OVERRIDE_$artifact" -> localClasspathString
+        )
+      }
+    }
+
+    object millExecutable extends JavaModule {
+      def mvnDeps = Seq(mvn"com.lihaoyi:mill-runner-launcher_3:$millVersion")
+
+      def mainClass = Some("mill.launcher.MillLauncherMain")
+    }
+  }
+}
+
+trait SqueryPublishModule extends SonatypeCentralPublishModule {
+  def publishVersion = VcsVersion.vcsState().format()
+
+  def pomSettings = PomSettings(
+    organization = "ba.sake",
+    url = "https://github.com/sake92/mill-squery",
+    licenses = Seq(License.Common.Apache2),
+    versionControl = VersionControl.github("sake92", "mill-squery"),
+    description = "Mill plugin for Squery",
+    developers = Seq(
+      Developer("sake92", "Sakib Hadžiavdić", "https://sake.ba")
+    )
+  )
+}
