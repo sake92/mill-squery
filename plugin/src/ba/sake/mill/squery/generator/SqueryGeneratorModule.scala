@@ -5,7 +5,6 @@ import mill.scalalib.*
 import mill.api.BuildCtx
 import mill.util.Jvm
 import upickle.default.{ReadWriter, macroRW}
-import ba.sake.squery.generator.{NameMapper, SchemaConfig, SqueryGenerator, SqueryGeneratorConfig}
 
 trait SqueryGeneratorModule extends JavaModule {
 

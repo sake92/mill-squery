@@ -19,7 +19,6 @@ object plugin extends ScalaModule, SqueryPublishModule {
 
   def mvnDeps = Seq(
     mvn"com.lihaoyi::mill-libs:$millVersion",
-    mvn"ba.sake::squery-generator:0.7.0".withDottyCompat(scalaVersion()),
     mvn"com.h2database:h2:2.3.232",
     mvn"org.postgresql:postgresql:42.7.4",
     mvn"mysql:mysql-connector-java:8.0.33",
