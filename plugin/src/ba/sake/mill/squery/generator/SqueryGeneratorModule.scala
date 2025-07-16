@@ -26,9 +26,9 @@ trait SqueryGeneratorModule extends JavaModule {
     }
   }
 
-  def squeryVersion: Task[String] = Task("0.8.1")
+  def squeryVersion: T[String] = Task("0.8.1")
 
-  def squeryClasspath: Task[Seq[PathRef]] = Task {
+  def squeryClasspath: T[Seq[PathRef]] = Task {
     defaultResolver().classpath(
       squeryJdbcDeps() ++
         Seq(mvn"ba.sake:squery-cli_2.13:${squeryVersion()}")
