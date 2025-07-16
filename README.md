@@ -15,9 +15,31 @@ And incrementally refactors them via regenesca.
 package build
 
 object myapp extends ScalaModule, SqueryGeneratorModule {
-  def squeryJdbcUrl = s"jdbc:h2:..."
-  def squeryUsername = ""
-  def squeryPassword = ""
-  // mapping from db schema to package name
-  def squerySchemas = Seq("PUBLIC" -> "com.myapp.public")
+  def squeryJdbcUrl = "jdbc:h2:..."
+  def squeryJdbcDeps = Seq(mvn"com.h2database:h2:...")
+  // mappings from db schema to package name
+  def squerySchemaMappings = Seq("PUBLIC" -> "com.myapp.public")
+
+  // optional config
+  // def squeryColNameIdentifierMapper = "camelcase" // or "noop"
+  // def squeryTypeNameMapper = "camelcase" // or "noop"
+  // def squeryRowTypeSuffix = "Row"
+  // def squeryDaoTypeSuffix = "Dao"
+
+  // def squeryTargetDir: T[PathRef] = Task {
+  //   BuildCtx.withFilesystemCheckerDisabled(PathRef(moduleDir / "src"))
+  // }
+
+  // def squeryVersion = "0.8.1" // squery version used to generate sources
 ```
+
+Generate source files whenever you change the openapi.json file:
+```shell
+./mill -i myapp.squeryGenerate
+```
+
+
+
+
+
+

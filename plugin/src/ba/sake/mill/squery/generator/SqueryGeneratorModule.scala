@@ -15,10 +15,10 @@ trait SqueryGeneratorModule extends JavaModule {
   /** List of (schema, basePackage) */
   def squerySchemaMappings: T[Seq[(String, String)]]
 
-  def squeryColNameIdentifierMapper: T[String] = Task("camelcase")
-  def squeryTypeNameMapper: T[String] = Task("camelcase")
-  def squeryRowTypeSuffix: T[String] = Task("Row")
-  def squeryDaoTypeSuffix: T[String] = Task("Dao")
+  def squeryColNameIdentifierMapper: T[String] = "camelcase"
+  def squeryTypeNameMapper: T[String] = "camelcase"
+  def squeryRowTypeSuffix: T[String] = "Row"
+  def squeryDaoTypeSuffix: T[String] = "Dao"
 
   def squeryTargetDir: T[PathRef] = Task {
     BuildCtx.withFilesystemCheckerDisabled {
@@ -26,7 +26,7 @@ trait SqueryGeneratorModule extends JavaModule {
     }
   }
 
-  def squeryVersion: T[String] = Task("0.8.1")
+  def squeryVersion: T[String] = "0.8.1"
 
   def squeryClasspath: T[Seq[PathRef]] = Task {
     defaultResolver().classpath(
