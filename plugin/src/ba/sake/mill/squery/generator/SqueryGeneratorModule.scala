@@ -3,25 +3,22 @@ package ba.sake.mill.squery.generator
 import mill.*
 import mill.scalalib.*
 import mill.api.BuildCtx
+import mill.util.Jvm
 import upickle.default.{ReadWriter, macroRW}
 import ba.sake.squery.generator.{NameMapper, SchemaConfig, SqueryGenerator, SqueryGeneratorConfig}
 
 trait SqueryGeneratorModule extends JavaModule {
 
-  implicit val NoopRW: ReadWriter[NameMapper.Noop.type] = macroRW
-  implicit val CamelCaseRW: ReadWriter[NameMapper.CamelCase.type] = macroRW
-  implicit val NameMapperRW: ReadWriter[NameMapper] = macroRW
-
-  implicit val SqueryGeneratorConfigRW: ReadWriter[SqueryGeneratorConfig] = macroRW
-
   def squeryJdbcUrl: T[String]
-
-  def squeryUsername: T[String]
-
-  def squeryPassword: T[String]
+  def squeryJdbcDeps: T[Seq[Dep]]
 
   /** List of (schema, basePackage) */
-  def squerySchemas: T[Seq[(String, String)]]
+  def squerySchemaMappings: T[Seq[(String, String)]]
+
+  def squeryColNameIdentifierMapper: T[String] = Task("camelcase")
+  def squeryTypeNameMapper: T[String] = Task("camelcase")
+  def squeryRowTypeSuffix: T[String] = Task("Row")
+  def squeryDaoTypeSuffix: T[String] = Task("Dao")
 
   def squeryTargetDir: T[PathRef] = Task {
     BuildCtx.withFilesystemCheckerDisabled {
@@ -29,60 +26,41 @@ trait SqueryGeneratorModule extends JavaModule {
     }
   }
 
-  def squeryGeneratorConfig: T[SqueryGeneratorConfig] = Task(SqueryGeneratorConfig.Default)
+  def squeryVersion: Task[String] = Task("0.8.1")
+
+  def squeryClasspath: Task[Seq[PathRef]] = Task {
+    defaultResolver().classpath(
+      squeryJdbcDeps() ++
+        Seq(mvn"ba.sake:squery-cli_2.13:${squeryVersion()}")
+    )
+  }
 
   def squeryGenerate(): Command[Unit] = Task.Command {
     println("Starting to generate Squery sources...")
-
-    val jdbcUrl = squeryJdbcUrl()
-    val username = squeryUsername()
-    val password = squeryPassword()
-    val dataSource: javax.sql.DataSource =
-      if (jdbcUrl.startsWith("jdbc:h2:")) {
-        val ds = new org.h2.jdbcx.JdbcDataSource()
-        ds.setURL(jdbcUrl)
-        ds.setUser(username)
-        ds.setPassword(password)
-        ds
-      } else if (jdbcUrl.startsWith("jdbc:postgresql:")) {
-        val ds = new org.postgresql.ds.PGSimpleDataSource()
-        ds.setURL(jdbcUrl)
-        ds.setUser(username)
-        ds.setPassword(password)
-        ds
-      } else if (jdbcUrl.startsWith("jdbc:mysql:")) {
-        val ds = new com.mysql.cj.jdbc.MysqlDataSource()
-        ds.setURL(jdbcUrl)
-        ds.setUser(username)
-        ds.setPassword(password)
-        ds
-      } else if (jdbcUrl.startsWith("jdbc:mariadb:")) {
-        val ds = new org.mariadb.jdbc.MariaDbDataSource()
-        ds.setUrl(jdbcUrl)
-        ds.setUser(username)
-        ds.setPassword(password)
-        ds
-      } else if (jdbcUrl.startsWith("jdbc:oracle:")) {
-        val ds = new oracle.jdbc.pool.OracleDataSource()
-        ds.setURL(jdbcUrl)
-        ds.setUser(username)
-        ds.setPassword(password)
-        ds
-      } else throw new RuntimeException(s"Unsupported database ${jdbcUrl}")
-
-    val generator = new SqueryGenerator(dataSource, squeryGeneratorConfig())
-    BuildCtx.withFilesystemCheckerDisabled {
-      generator.generateFiles(
-        squerySchemas().map { case (schemaName, basePackage) =>
-          SchemaConfig(
-            name = schemaName,
-            baseFolder = squeryTargetDir().path.wrapped,
-            basePackage = basePackage
-          )
-        }
-      )
+    Jvm.withClassLoader(classPath = squeryClasspath().map(_.path).toSeq) { classLoader =>
+      classLoader
+        .loadClass("ba.sake.squery.cli.SqueryMain")
+        .getMethod("main", classOf[Array[String]])
+        .invoke(
+          null,
+          Array[String](
+            "--jdbcUrl",
+            squeryJdbcUrl(),
+            "--baseFolder",
+            squeryTargetDir().path.wrapped.toString,
+            "--colNameIdentifierMapper",
+            squeryColNameIdentifierMapper(),
+            "--typeNameMapper",
+            squeryTypeNameMapper(),
+            "--rowTypeSuffix",
+            squeryRowTypeSuffix(),
+            "--daoTypeSuffix",
+            squeryDaoTypeSuffix()
+          ) ++ squerySchemaMappings().flatMap { case (schemaName, packageName) =>
+            Array("--schemaMappings", s"${schemaName}:${packageName}")
+          }
+        )
     }
-
     println("Finished generating Squery sources")
   }
 
