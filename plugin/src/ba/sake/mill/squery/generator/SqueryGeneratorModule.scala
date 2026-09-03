@@ -40,6 +40,10 @@ trait SqueryGeneratorModule extends JavaModule {
   }
 
   def squeryGenerate(): Command[Unit] = Task.Command {
+    val includeTables = squeryIncludeTables() match {
+      case Seq()   => Seq(".*")
+      case patterns => patterns
+    }
     println("Starting to generate Squery sources...")
     Jvm.withClassLoader(classPath = squeryClasspath().map(_.path).toSeq) { classLoader =>
       classLoader
@@ -63,7 +67,7 @@ trait SqueryGeneratorModule extends JavaModule {
           ) ++ squerySchemaMappings().flatMap { case (schemaName, packageName) =>
             Array("--schemaMappings", s"${schemaName}:${packageName}")
           } ++ squeryTypeMappingRules().flatMap(rule => Array("--typeMappingRule", rule)) ++
-            squeryIncludeTables().flatMap(pattern => Array("--includeTables", pattern)) ++
+            includeTables.flatMap(pattern => Array("--includeTables", pattern)) ++
             squeryExcludeTables().flatMap(pattern => Array("--excludeTables", pattern))
         )
     }
