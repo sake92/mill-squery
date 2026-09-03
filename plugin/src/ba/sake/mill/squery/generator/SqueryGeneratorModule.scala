@@ -4,7 +4,6 @@ import mill.*
 import mill.scalalib.*
 import mill.api.BuildCtx
 import mill.util.Jvm
-import upickle.default.{ReadWriter, macroRW}
 
 trait SqueryGeneratorModule extends JavaModule {
 
@@ -18,6 +17,12 @@ trait SqueryGeneratorModule extends JavaModule {
   def squeryTypeNameMapper: T[String] = "camelcase"
   def squeryRowTypeSuffix: T[String] = "Row"
   def squeryDaoTypeSuffix: T[String] = "Dao"
+  /** Ordered rules in `column-name-regex|declared-type-regex|Scala-type` format. */
+  def squeryTypeMappingRules: T[Seq[String]] = Seq.empty
+  /** Regexes matching `schema.table` names to generate; empty means all tables. */
+  def squeryIncludeTables: T[Seq[String]] = Seq.empty
+  /** Regexes matching `schema.table` names to exclude; exclusions take precedence. */
+  def squeryExcludeTables: T[Seq[String]] = Seq.empty
 
   def squeryTargetDir: T[PathRef] = Task {
     BuildCtx.withFilesystemCheckerDisabled {
@@ -25,7 +30,7 @@ trait SqueryGeneratorModule extends JavaModule {
     }
   }
 
-  def squeryVersion: T[String] = "0.8.1"
+  def squeryVersion: T[String] = "0.10.0"
 
   def squeryClasspath: T[Seq[PathRef]] = Task {
     defaultResolver().classpath(
@@ -57,7 +62,9 @@ trait SqueryGeneratorModule extends JavaModule {
             squeryDaoTypeSuffix()
           ) ++ squerySchemaMappings().flatMap { case (schemaName, packageName) =>
             Array("--schemaMappings", s"${schemaName}:${packageName}")
-          }
+          } ++ squeryTypeMappingRules().flatMap(rule => Array("--typeMappingRule", rule)) ++
+            squeryIncludeTables().flatMap(pattern => Array("--includeTables", pattern)) ++
+            squeryExcludeTables().flatMap(pattern => Array("--excludeTables", pattern))
         )
     }
     println("Finished generating Squery sources")

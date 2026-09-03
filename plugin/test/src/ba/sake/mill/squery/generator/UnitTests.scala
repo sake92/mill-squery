@@ -2,7 +2,6 @@ package ba.sake.mill.squery.generator
 
 import scala.concurrent.duration.Duration
 import mill.*, scalalib.*
-import mill.api.PathRef
 import mill.api.Discover
 import mill.contrib.flyway.FlywayModule
 import mill.util.TokenReaders.*
@@ -16,12 +15,12 @@ class UnitTests extends munit.FunSuite {
     object build extends TestRootModule, ScalaModule, SqueryGeneratorModule, FlywayModule {
       lazy val millDiscover = Discover[this.type]
 
-      def scalaVersion = "3.7.1"
+      def scalaVersion = "3.8.2"
 
       override def mvnDeps = Seq(
         mvn"com.zaxxer:HikariCP:4.0.3",
         mvn"com.h2database:h2:2.3.232",
-        mvn"ba.sake::squery:0.7.0"
+        mvn"ba.sake::squery:0.10.0"
       )
 
       // cant just ./h2_pagila because of Mill task sandboxing

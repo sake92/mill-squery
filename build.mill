@@ -1,4 +1,4 @@
-//| mill-version: 1.0.0
+//| mill-version: 1.1.8
 
 package build
 
@@ -13,9 +13,9 @@ object plugin extends ScalaModule, SqueryPublishModule {
   def artifactName = "mill-squery-generator"
   def platformSuffix = s"_mill${millBinPlatform}"
 
-  def scalaVersion = "3.7.1"
+  def scalaVersion = "3.8.2"
 
-  def scalacOptions = Seq("-Ywarn-unused", "-deprecation")
+  def scalacOptions = Seq("-Wunused:all", "-deprecation")
 
   def mvnDeps = Seq(
     mvn"com.lihaoyi::mill-libs:$millVersion",
