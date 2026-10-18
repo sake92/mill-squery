@@ -23,6 +23,8 @@ trait SqueryGeneratorModule extends JavaModule {
   def squeryIncludeTables: T[Seq[String]] = Seq.empty
   /** Regexes matching `schema.table` names to exclude; exclusions take precedence. */
   def squeryExcludeTables: T[Seq[String]] = Seq.empty
+  /** Key newtypes: `none` (default) or `iron`. `iron` requires the `squery-iron` dependency. */
+  def squeryNewtypes: T[String] = "none"
 
   def squeryTargetDir: T[PathRef] = Task {
     BuildCtx.withFilesystemCheckerDisabled {
@@ -30,7 +32,7 @@ trait SqueryGeneratorModule extends JavaModule {
     }
   }
 
-  def squeryVersion: T[String] = "0.10.0"
+  def squeryVersion: T[String] = "0.13.0"
 
   def squeryClasspath: T[Seq[PathRef]] = Task {
     defaultResolver().classpath(
@@ -39,37 +41,41 @@ trait SqueryGeneratorModule extends JavaModule {
     )
   }
 
-  def squeryGenerate(): Command[Unit] = Task.Command {
+  def squeryGenerateArgs: T[Seq[String]] = Task {
     val includeTables = squeryIncludeTables() match {
-      case Seq()   => Seq(".*")
+      case Seq()    => Seq(".*")
       case patterns => patterns
     }
+    Seq(
+      "--jdbcUrl",
+      squeryJdbcUrl(),
+      "--baseFolder",
+      squeryTargetDir().path.wrapped.toString,
+      "--colNameIdentifierMapper",
+      squeryColNameIdentifierMapper(),
+      "--typeNameMapper",
+      squeryTypeNameMapper(),
+      "--rowTypeSuffix",
+      squeryRowTypeSuffix(),
+      "--daoTypeSuffix",
+      squeryDaoTypeSuffix(),
+      "--newtypes",
+      squeryNewtypes()
+    ) ++ squerySchemaMappings().flatMap { case (schemaName, packageName) =>
+      Seq("--schemaMappings", s"${schemaName}:${packageName}")
+    } ++ squeryTypeMappingRules().flatMap(rule => Seq("--typeMappingRule", rule)) ++
+      includeTables.flatMap(pattern => Seq("--includeTables", pattern)) ++
+      squeryExcludeTables().flatMap(pattern => Seq("--excludeTables", pattern))
+  }
+
+  def squeryGenerate(): Command[Unit] = Task.Command {
+    val args = squeryGenerateArgs()
     println("Starting to generate Squery sources...")
     Jvm.withClassLoader(classPath = squeryClasspath().map(_.path).toSeq) { classLoader =>
       classLoader
         .loadClass("ba.sake.squery.cli.SqueryMain")
         .getMethod("main", classOf[Array[String]])
-        .invoke(
-          null,
-          Array[String](
-            "--jdbcUrl",
-            squeryJdbcUrl(),
-            "--baseFolder",
-            squeryTargetDir().path.wrapped.toString,
-            "--colNameIdentifierMapper",
-            squeryColNameIdentifierMapper(),
-            "--typeNameMapper",
-            squeryTypeNameMapper(),
-            "--rowTypeSuffix",
-            squeryRowTypeSuffix(),
-            "--daoTypeSuffix",
-            squeryDaoTypeSuffix()
-          ) ++ squerySchemaMappings().flatMap { case (schemaName, packageName) =>
-            Array("--schemaMappings", s"${schemaName}:${packageName}")
-          } ++ squeryTypeMappingRules().flatMap(rule => Array("--typeMappingRule", rule)) ++
-            includeTables.flatMap(pattern => Array("--includeTables", pattern)) ++
-            squeryExcludeTables().flatMap(pattern => Array("--excludeTables", pattern))
-        )
+        .invoke(null, args.toArray)
     }
     println("Finished generating Squery sources")
   }
