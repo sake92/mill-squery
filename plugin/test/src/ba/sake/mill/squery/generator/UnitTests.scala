@@ -15,12 +15,12 @@ class UnitTests extends munit.FunSuite {
     object build extends TestRootModule, ScalaModule, SqueryGeneratorModule, FlywayModule {
       lazy val millDiscover = Discover[this.type]
 
-      def scalaVersion = "3.8.2"
+      def scalaVersion = "3.9.0"
 
       override def mvnDeps = Seq(
         mvn"com.zaxxer:HikariCP:4.0.3",
         mvn"com.h2database:h2:2.3.232",
-        mvn"ba.sake::squery:0.10.0"
+        mvn"ba.sake::squery:0.13.0"
       )
 
       // cant just ./h2_pagila because of Mill task sandboxing
@@ -60,6 +60,27 @@ class UnitTests extends munit.FunSuite {
       assert(generatedDaos.map(_.last).contains("ActorDao.scala"), "ActorDao was not generated")
 
       assert(eval(build.test.testForked()).isRight)
+    }
+  }
+
+  test("newtypes iron") {
+    object build extends TestRootModule, SqueryGeneratorModule {
+      lazy val millDiscover = Discover[this.type]
+
+      def squeryJdbcUrl = "jdbc:h2:mem:test"
+      def squeryJdbcDeps = Seq(mvn"com.h2database:h2:2.3.232")
+      def squerySchemaMappings = Seq("PUBLIC" -> "public")
+
+      override def squeryNewtypes = "iron"
+    }
+
+    val resourceFolder = os.Path(sys.env("MILL_TEST_RESOURCE_DIR"))
+    UnitTester(build, resourceFolder / "h2").scoped { eval =>
+      val Right(argsResult) = eval(build.squeryGenerateArgs): @unchecked
+      val args = argsResult.value
+      val newtypesIndex = args.indexOf("--newtypes")
+      assert(newtypesIndex >= 0, args.toString)
+      assertEquals(args(newtypesIndex + 1), "iron")
     }
   }
 }

@@ -15,6 +15,9 @@ And incrementally refactors them via regenesca.
 package build
 
 object myapp extends ScalaModule, SqueryGeneratorModule {
+  // squery 0.13.0 requires Scala 3.9.0+
+  def scalaVersion = "3.9.0"
+
   def squeryJdbcUrl = "jdbc:h2:..."
   def squeryJdbcDeps = Seq(mvn"com.h2database:h2:...")
   // mappings from db schema to package name
@@ -28,12 +31,13 @@ object myapp extends ScalaModule, SqueryGeneratorModule {
   // def squeryTypeMappingRules = Seq(".*_id|UUID|java.util.UUID")
   // def squeryIncludeTables = Seq("PUBLIC\\.(actor|address)") // schema.table regexes
   // def squeryExcludeTables = Seq("PUBLIC\\.address") // exclusions win
+  // def squeryNewtypes = "none" // or "iron" (requires the "squery-iron" dependency)
 
   // def squeryTargetDir: T[PathRef] = Task {
   //   BuildCtx.withFilesystemCheckerDisabled(PathRef(moduleDir / "src"))
   // }
 
-  // def squeryVersion = "0.10.0" // squery version used to generate sources
+  // def squeryVersion = "0.13.0" // squery version used to generate sources
 ```
 
 Generate source files whenever you change the openapi.json file:
